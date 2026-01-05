@@ -1,0 +1,485 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { INITIAL_QUESTS, LEVEL_TITLES } from './constants';
+import { Quest, QuestStatus, QuestCategory, Reflection } from './types';
+import { Analytics } from './components/Analytics';
+import { QuestCard } from './components/QuestCard';
+import { Oracle } from './components/Oracle';
+import { Roulette } from './components/Roulette';
+import { Grogu } from './components/Grogu';
+import { CreativeStudio } from './components/CreativeStudio';
+import { LayoutDashboard, CheckCircle2, Zap, Mountain, BookOpen, Plus, X, Trophy, Palette } from 'lucide-react';
+
+export default function App() {
+  const [quests, setQuests] = useState<Quest[]>(INITIAL_QUESTS);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'quests' | 'studio'>('dashboard');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [mounted, setMounted] = useState(false);
+  
+  // Modal State for completing quest
+  const [completingQuest, setCompletingQuest] = useState<Quest | null>(null);
+  const [reflectionNote, setReflectionNote] = useState('');
+
+  // Modal State for Adding Quest
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newQuestTitle, setNewQuestTitle] = useState('');
+  const [newQuestCategory, setNewQuestCategory] = useState<QuestCategory>(QuestCategory.Solo);
+  const [newQuestIsBold, setNewQuestIsBold] = useState(false);
+
+  // Trigger animations on mount
+  useEffect(() => {
+    // Small delay to ensure DOM is ready for transition
+    const timer = setTimeout(() => setMounted(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Generate stable random heights for the boldness meter visual so they don't jitter on re-renders
+  const boldnessBarHeights = useMemo(() => {
+    return Array.from({ length: 10 }, () => 30 + Math.floor(Math.random() * 60)); 
+  }, []);
+
+  // Stats Calculation
+  const stats = useMemo(() => {
+    const completed = quests.filter(q => q.status === QuestStatus.Mastered).length;
+    const total = quests.length;
+    // Simple level formula: 1 level every 5 quests
+    const levelIndex = Math.min(Math.floor(completed / 5), LEVEL_TITLES.length - 1);
+    const boldCompleted = quests.filter(q => q.isBold && q.status === QuestStatus.Mastered).length;
+
+    return {
+      completed,
+      total,
+      levelTitle: LEVEL_TITLES[levelIndex],
+      level: levelIndex + 1,
+      boldPoints: boldCompleted,
+      nextLevelQuestCount: 5 - (completed % 5)
+    };
+  }, [quests]);
+
+  const handleQuestComplete = (quest: Quest) => {
+    setCompletingQuest(quest);
+    setReflectionNote('');
+  };
+
+  const confirmCompletion = () => {
+    if (!completingQuest) return;
+
+    const updatedQuests = quests.map(q => {
+      if (q.id === completingQuest.id) {
+        return {
+          ...q,
+          status: QuestStatus.Mastered,
+          reflection: {
+            note: reflectionNote || "A memory created.",
+            dateCompleted: new Date().toISOString()
+          }
+        };
+      }
+      return q;
+    });
+
+    setQuests(updatedQuests);
+    setCompletingQuest(null);
+  };
+
+  const handleAddQuest = () => {
+    if (!newQuestTitle.trim()) return;
+
+    // Generate a simple unique ID
+    const newId = quests.length > 0 ? Math.max(...quests.map(q => q.id)) + 1 : 1;
+    
+    const newQuest: Quest = {
+      id: newId,
+      title: newQuestTitle,
+      category: newQuestCategory,
+      status: QuestStatus.Pending,
+      isBold: newQuestIsBold,
+      month: new Date().toLocaleString('default', { month: 'short' }) // Default to current month
+    };
+
+    setQuests([newQuest, ...quests]);
+    
+    // Reset and Close
+    setNewQuestTitle('');
+    setNewQuestCategory(QuestCategory.Solo);
+    setNewQuestIsBold(false);
+    setIsAddModalOpen(false);
+    
+    // Switch to quests tab to see the new entry
+    setActiveTab('quests');
+  };
+
+  // Quest of the Week (Logic: First pending quest in January, or just random pending)
+  const questOfTheWeek = useMemo(() => {
+    return quests.find(q => q.status === QuestStatus.Pending && q.month === 'Jan') || quests.find(q => q.status === QuestStatus.Pending);
+  }, [quests]);
+
+  // Filtering
+  const filteredQuests = useMemo(() => {
+    if (selectedCategory === 'All') return quests;
+    return quests.filter(q => q.category === selectedCategory);
+  }, [quests, selectedCategory]);
+
+  return (
+    <div className="min-h-screen bg-[#F7F5F0] pb-20 relative">
+      {/* Navigation Header */}
+      <nav className="sticky top-0 z-40 bg-[#F7F5F0]/80 backdrop-blur-md border-b border-ink/5 px-6 py-4 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-ink text-paper flex items-center justify-center rounded-lg font-serif text-xl font-bold">
+            26
+          </div>
+          <div>
+            <h1 className="font-serif text-xl text-ink leading-none">Odyssey Engine</h1>
+            <p className="text-xs font-sans text-ink-light tracking-widest uppercase mt-1">Status: {stats.levelTitle}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-ink text-paper px-3 py-2 rounded-lg font-sans text-sm flex items-center gap-2 hover:bg-ink/90 transition-colors shadow-sm hidden md:flex"
+          >
+            <Plus size={16} />
+            New Quest
+          </button>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setIsAddModalOpen(true)}
+              className="p-2 md:hidden bg-ink text-paper rounded-full shadow-lg"
+            >
+              <Plus size={20} />
+            </button>
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`p-2 rounded-full transition-colors ${activeTab === 'dashboard' ? 'bg-ink/10 text-ink' : 'text-ink-light hover:bg-black/5'}`}
+            >
+              <LayoutDashboard size={20} />
+            </button>
+            <button 
+              onClick={() => setActiveTab('quests')}
+              className={`p-2 rounded-full transition-colors ${activeTab === 'quests' ? 'bg-ink/10 text-ink' : 'text-ink-light hover:bg-black/5'}`}
+            >
+              <BookOpen size={20} />
+            </button>
+            <button 
+              onClick={() => setActiveTab('studio')}
+              className={`p-2 rounded-full transition-colors ${activeTab === 'studio' ? 'bg-ink/10 text-ink' : 'text-ink-light hover:bg-black/5'}`}
+            >
+              <Palette size={20} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-4xl mx-auto px-6 py-8">
+        
+        {/* DASHBOARD VIEW */}
+        {activeTab === 'dashboard' && (
+          <div className="animate-fade-in space-y-8">
+            
+            {/* Stats Grid - 3 Columns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* 1. Level System Card */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-ink/5 relative overflow-hidden flex flex-col justify-between h-48 group hover:shadow-md transition-all duration-500">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-soft-green/50"></div>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-[10px] text-ink-light uppercase tracking-widest font-semibold">Current Rank</p>
+                            <span className="inline-block mt-2 px-2 py-1 bg-soft-green/20 text-ink-light text-xs font-bold rounded uppercase tracking-wider">
+                                {stats.levelTitle}
+                            </span>
+                        </div>
+                        <div className="text-ink-light/20 group-hover:scale-110 transition-transform duration-500">
+                            <Trophy size={48} strokeWidth={1} />
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div className="flex items-end gap-2 mb-2">
+                            <span className="text-4xl font-serif text-ink">{stats.level}</span>
+                            <span className="text-xs text-ink-light mb-1.5 uppercase tracking-wide">Level</span>
+                        </div>
+                        {/* Level Progress Bar */}
+                        <div className="w-full h-2 bg-ink/5 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full bg-soft-green transition-all duration-[1200ms] ease-[cubic-bezier(0.25,1,0.5,1)]"
+                                style={{ width: `${mounted ? (5 - stats.nextLevelQuestCount) / 5 * 100 : 0}%` }}
+                            />
+                        </div>
+                        <p className="text-[10px] text-ink-light mt-2 text-right">
+                            {stats.nextLevelQuestCount} quests to next level
+                        </p>
+                    </div>
+                </div>
+
+                {/* 2. Boldness Meter Card */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-ink/5 relative overflow-hidden flex flex-col justify-between h-48 hover:shadow-md transition-all duration-500">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-[10px] text-ink-light uppercase tracking-widest font-semibold flex items-center gap-1">
+                                <Zap size={14} className="text-yellow-600 fill-yellow-600" /> Boldness Meter
+                            </p>
+                            <p className="text-xs text-ink-light mt-1">Courage tracked</p>
+                        </div>
+                        <div className="text-3xl font-serif text-ink">{stats.boldPoints}</div>
+                    </div>
+                    
+                    {/* Visual Equalizer Bars */}
+                    <div className="flex items-end h-20 gap-1.5 mt-2 px-2">
+                        {boldnessBarHeights.map((height, i) => (
+                            <div 
+                                key={i}
+                                className={`flex-1 rounded-t-sm transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${i < stats.boldPoints ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.4)]' : 'bg-ink/5'}`}
+                                style={{ 
+                                    height: mounted && i < stats.boldPoints ? `${height}%` : '15%',
+                                    transitionDelay: `${i * 60}ms`,
+                                }}
+                            />
+                        ))}
+                    </div>
+                    <p className="text-[10px] text-center text-ink-light/60 uppercase tracking-widest mt-1">Fear Factor</p>
+                </div>
+
+                {/* 3. Total Progress (Circular) Card */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-ink/5 flex flex-col justify-between h-48 hover:shadow-md transition-all duration-500">
+                    <div className="flex justify-between items-start">
+                        <p className="text-[10px] text-ink-light uppercase tracking-widest font-semibold">Odyssey Completion</p>
+                        <span className="text-xs font-sans bg-ink/5 px-2 py-1 rounded text-ink-light">2026</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-center -mt-2">
+                        <div className="relative w-24 h-24 flex items-center justify-center">
+                            <svg className="w-full h-full -rotate-90">
+                                <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-ink/5" />
+                                <circle 
+                                    cx="48" cy="48" r="40" 
+                                    stroke="currentColor" strokeWidth="6" 
+                                    fill="transparent" 
+                                    strokeDasharray="251.2"
+                                    strokeDashoffset={mounted ? 251.2 - (251.2 * stats.completed / Math.max(stats.total, 1)) : 251.2}
+                                    className="text-ink transition-all duration-[1500ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center flex-col">
+                                <span className="text-xl font-serif font-bold text-ink">{Math.round((stats.completed / Math.max(stats.total, 1)) * 100)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-sm font-serif text-ink">{stats.completed} <span className="text-ink-light">/ {stats.total} Quests</span></p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Decision Making Row: Oracle + Roulette */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="h-full">
+                <Oracle quests={quests} />
+              </div>
+              <div className="h-full">
+                <Roulette quests={quests} />
+              </div>
+            </div>
+            
+            <Analytics quests={quests} />
+
+            {/* Quest of the Week */}
+            {questOfTheWeek && (
+              <div className="bg-ink text-paper rounded-xl p-6 relative overflow-hidden">
+                <div className="relative z-10">
+                   <div className="flex justify-between items-start mb-4">
+                     <div>
+                       <span className="text-accent text-xs font-bold uppercase tracking-widest">Quest of the Week</span>
+                       <h3 className="font-serif text-2xl mt-2">{questOfTheWeek.title}</h3>
+                     </div>
+                     <Mountain className="text-accent/50" size={40} />
+                   </div>
+                   <p className="text-paper/60 text-sm font-sans mb-6 max-w-lg">
+                     It's January. The year is fresh. This is the perfect starting point for your Odyssey.
+                   </p>
+                   <button 
+                     onClick={() => setActiveTab('quests')}
+                     className="bg-paper text-ink px-6 py-2 rounded-full font-sans text-sm font-medium hover:bg-accent transition-colors"
+                   >
+                     View Quest Log
+                   </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* QUESTS LIST VIEW */}
+        {activeTab === 'quests' && (
+          <div className="animate-fade-in">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+              <h2 className="font-serif text-3xl text-ink">Quest Log</h2>
+              
+              <div className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto no-scrollbar">
+                {['All', 'Social', 'Skill', 'Solo', 'Adventure', 'Creative'].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`
+                      px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all
+                      ${selectedCategory === cat 
+                        ? 'bg-ink text-paper' 
+                        : 'bg-white text-ink-light hover:bg-ink/5'}
+                    `}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Add New Quest Card - Prominent dedicated section */}
+              <button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="group p-4 rounded-lg border-2 border-dashed border-ink/10 hover:border-ink/30 hover:bg-white/50 transition-all duration-300 flex flex-col items-center justify-center min-h-[140px] text-center"
+              >
+                <div className="w-12 h-12 rounded-full bg-ink/5 group-hover:bg-ink group-hover:text-paper text-ink-light mb-3 flex items-center justify-center transition-all">
+                  <Plus size={24} />
+                </div>
+                <h4 className="font-serif text-lg text-ink/70 group-hover:text-ink">Chart a New Course</h4>
+                <p className="text-xs font-sans text-ink-light uppercase tracking-widest mt-1">Add to Log</p>
+              </button>
+
+              {filteredQuests.map(quest => (
+                <QuestCard 
+                  key={quest.id} 
+                  quest={quest} 
+                  onComplete={handleQuestComplete}
+                />
+              ))}
+            </div>
+            
+            {filteredQuests.length === 0 && (
+              <div className="text-center py-10 text-ink-light font-serif text-lg">
+                No existing quests found here. Why not add one above?
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STUDIO VIEW */}
+        {activeTab === 'studio' && <CreativeStudio />}
+
+      </main>
+
+      {/* Floating Grogu (Replaces ChatBot) */}
+      <Grogu quests={quests} />
+
+      {/* Reflection Modal (Complete) */}
+      {completingQuest && (
+        <div className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-paper w-full max-w-md rounded-xl shadow-2xl p-6 border border-ink/10 animate-fade-in">
+            <h3 className="font-serif text-2xl text-ink mb-2">Memory Unlocked</h3>
+            <p className="text-ink-light text-sm mb-6">
+              You've completed <span className="font-semibold text-ink">"{completingQuest.title}"</span>. 
+              Leave a note for your future self.
+            </p>
+            
+            <textarea
+              value={reflectionNote}
+              onChange={(e) => setReflectionNote(e.target.value)}
+              placeholder="What did it feel like? (e.g., 'The sunrise was colder than expected, but the silence was worth it.')"
+              className="w-full h-32 bg-white border border-ink/10 rounded-lg p-3 text-ink font-serif placeholder:text-ink/30 focus:outline-none focus:border-accent resize-none mb-6"
+            />
+            
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => setCompletingQuest(null)}
+                className="px-4 py-2 text-ink-light hover:text-ink font-sans text-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmCompletion}
+                className="bg-ink text-paper px-6 py-2 rounded-lg font-sans text-sm hover:bg-ink/90 flex items-center gap-2"
+              >
+                <CheckCircle2 size={16} />
+                Conquer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Quest Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-paper w-full max-w-md rounded-xl shadow-2xl p-6 border border-ink/10 animate-fade-in relative">
+            <button 
+              onClick={() => setIsAddModalOpen(false)}
+              className="absolute top-4 right-4 text-ink-light hover:text-ink"
+            >
+              <X size={20} />
+            </button>
+            
+            <h3 className="font-serif text-2xl text-ink mb-6">New Odyssey Entry</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-xs font-sans text-ink-light uppercase tracking-widest mb-2">Quest Title</label>
+                <input
+                  type="text"
+                  value={newQuestTitle}
+                  onChange={(e) => setNewQuestTitle(e.target.value)}
+                  placeholder="e.g., Climb a new mountain..."
+                  className="w-full bg-white border border-ink/10 rounded-lg px-4 py-3 text-ink font-serif placeholder:text-ink/30 focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-sans text-ink-light uppercase tracking-widest mb-3">Category</label>
+                <div className="flex flex-wrap gap-2">
+                  {Object.values(QuestCategory).map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setNewQuestCategory(cat)}
+                      className={`
+                        px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
+                        ${newQuestCategory === cat 
+                          ? 'bg-ink text-paper border-ink' 
+                          : 'bg-white text-ink-light border-ink/10 hover:border-ink/30'}
+                      `}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-ink/5">
+                <button 
+                   onClick={() => setNewQuestIsBold(!newQuestIsBold)}
+                   className={`
+                     w-10 h-6 rounded-full flex items-center transition-colors p-1
+                     ${newQuestIsBold ? 'bg-yellow-600 justify-end' : 'bg-ink/10 justify-start'}
+                   `}
+                >
+                  <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                </button>
+                <div className="flex flex-col">
+                  <span className="text-sm font-serif text-ink">Bold Quest</span>
+                  <span className="text-[10px] text-ink-light font-sans">For tasks that require extra courage.</span>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleAddQuest}
+                className="w-full bg-ink text-paper py-3 rounded-lg font-sans text-sm font-medium hover:bg-ink/90 transition-colors mt-4 flex items-center justify-center gap-2"
+              >
+                <Plus size={16} />
+                Write to Log
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
