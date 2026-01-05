@@ -23,17 +23,17 @@ export const Oracle: React.FC<OracleProps> = ({ quests }) => {
   };
 
   return (
-    <div className="bg-ink text-paper p-6 rounded-xl shadow-lg mb-8 relative overflow-hidden">
+    <div className="p-6 rounded-xl shadow-lg mb-8 relative overflow-hidden h-full bg-gradient-to-br from-indigo-900 via-violet-900 to-slate-900 bg-[length:200%_200%] animate-gradient-slow text-white border border-white/10">
       {/* Abstract Background Decoration */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-accent opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500 opacity-20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none animate-pulse-glow"></div>
 
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="text-accent" size={20} />
-          <h3 className="font-serif text-xl tracking-wide">The Oracle</h3>
+          <Sparkles className="text-purple-300" size={20} />
+          <h3 className="font-serif text-xl tracking-wide text-white">The Oracle</h3>
         </div>
         
-        <p className="text-sm font-sans text-paper/70 mb-4">
+        <p className="text-sm font-sans text-white/70 mb-4">
           Unsure where to embark? Tell the engine your time and energy levels.
         </p>
 
@@ -43,21 +43,21 @@ export const Oracle: React.FC<OracleProps> = ({ quests }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="e.g., I have 2 hours and feeling adventurous..."
-            className="flex-1 bg-paper/10 border border-paper/20 rounded-lg px-4 py-2 text-paper placeholder:text-paper/30 focus:outline-none focus:border-accent font-sans text-sm"
+            className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-purple-300 font-sans text-sm backdrop-blur-md"
             onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
           />
           <button 
             onClick={handleAsk}
             disabled={loading}
-            className="bg-accent text-ink px-4 py-2 rounded-lg hover:bg-white transition-colors disabled:opacity-50"
+            className="bg-purple-500/80 text-white px-4 py-2 rounded-lg hover:bg-purple-400 transition-colors disabled:opacity-50 backdrop-blur-md shadow-lg"
           >
             {loading ? '...' : <Send size={18} />}
           </button>
         </div>
 
         {suggestion && (
-          <div className="mt-4 p-4 bg-paper/10 border border-paper/20 rounded-lg animate-fade-in">
-             <p className="font-serif italic text-lg leading-relaxed">{suggestion}</p>
+          <div className="mt-4 p-4 bg-white/10 border border-white/20 rounded-lg animate-fade-in backdrop-blur-md">
+             <p className="font-serif italic text-lg leading-relaxed text-purple-100">{suggestion}</p>
           </div>
         )}
       </div>

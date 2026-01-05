@@ -17,7 +17,7 @@ const COLORS = {
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-paper border border-ink/10 p-2 rounded shadow-md text-sm font-serif">
+      <div className="bg-white/90 backdrop-blur-md border border-gray-200 p-2 rounded shadow-md text-sm font-serif">
         <p className="label">{`${payload[0].name} : ${payload[0].value}`}</p>
       </div>
     );
@@ -54,9 +54,9 @@ export const Analytics: React.FC<AnalyticsProps> = ({ quests }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-      {/* Life Balance Pie Chart */}
-      <div className="bg-white/50 p-6 rounded-xl border border-ink/5 shadow-sm">
-        <h3 className="text-xl font-serif text-ink mb-4 text-center">Life Balance</h3>
+      {/* Life Balance Pie Chart (Rose/Purple Theme) */}
+      <div className="p-6 rounded-xl border border-white/50 shadow-lg bg-gradient-to-br from-rose-50/80 via-white/90 to-purple-50/80 bg-[length:200%_200%] animate-gradient-slow backdrop-blur-xl">
+        <h3 className="text-xl font-serif text-rose-900 mb-4 text-center">Life Balance</h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -78,33 +78,33 @@ export const Analytics: React.FC<AnalyticsProps> = ({ quests }) => {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex flex-wrap justify-center gap-3 mt-4 text-xs font-sans text-ink-light uppercase tracking-widest">
+        <div className="flex flex-wrap justify-center gap-3 mt-4 text-xs font-sans text-rose-800/70 uppercase tracking-widest">
             {Object.entries(COLORS).map(([cat, color]) => (
                 <div key={cat} className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full" style={{backgroundColor: color}}></div>
+                    <div className="w-3 h-3 rounded-full shadow-sm" style={{backgroundColor: color}}></div>
                     <span>{cat}</span>
                 </div>
             ))}
         </div>
       </div>
 
-      {/* Momentum Bar Graph */}
-      <div className="bg-white/50 p-6 rounded-xl border border-ink/5 shadow-sm">
-        <h3 className="text-xl font-serif text-ink mb-4 text-center">2026 Momentum</h3>
+      {/* Momentum Bar Graph (Slate/Blue Theme) */}
+      <div className="p-6 rounded-xl border border-white/50 shadow-lg bg-gradient-to-br from-slate-50/80 via-white/90 to-blue-50/80 bg-[length:200%_200%] animate-gradient-slow backdrop-blur-xl">
+        <h3 className="text-xl font-serif text-slate-800 mb-4 text-center">2026 Momentum</h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={monthData}
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontFamily: 'Inter', fontSize: 10, fill: '#5C5852'}} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontFamily: 'Inter', fontSize: 10, fill: '#475569'}} />
               <YAxis hide />
-              <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
-              <Bar dataKey="planned" fill="#2D2A26" radius={[4, 4, 4, 4]} barSize={8} />
+              <Tooltip cursor={{fill: 'rgba(255,255,255,0.4)'}} content={<CustomTooltip />} />
+              <Bar dataKey="planned" fill="#334155" radius={[4, 4, 4, 4]} barSize={8} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <p className="text-center text-xs text-ink-light font-sans mt-4">PLANNED QUESTS PER MONTH</p>
+        <p className="text-center text-xs text-slate-600 font-sans mt-4">PLANNED QUESTS PER MONTH</p>
       </div>
     </div>
   );
